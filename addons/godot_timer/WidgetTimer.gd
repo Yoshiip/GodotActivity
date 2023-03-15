@@ -14,7 +14,6 @@ const DELAY_OUT_OF_FOCUS_BEFORE_PAUSING := 300.0
 var c_delay := 0.0
 
 var paused := false
-onready var ChartBar := preload("res://addons/godot_timer/prefabs/ChartBar.tscn")
 const SAVE_FILEPATH := "res://addons/godot_timer/save.sav"
 
 func fill_statistics() -> void:
@@ -29,8 +28,8 @@ func fill_statistics() -> void:
 				}
 
 func _enter_tree() -> void:
-#	fill_statistics()
 	load_data()
+#	fill_statistics()
 	$AutosaveTimer.connect("timeout", self, "_autosave_timer_timeout")
 	$TickTimer.connect("timeout", self, "_tick_timer_timeout")
 	
@@ -71,7 +70,6 @@ func load_data() -> void:
 	if not file.file_exists(SAVE_FILEPATH):
 		return
 	file.open(SAVE_FILEPATH, File.READ)
-	print("Loading timer data...")
 	var _data = file.get_var()
 	total_project_time = _data.get("total_project_time")
 	statistics = _data.get("statistics")
@@ -89,7 +87,6 @@ func save_data() -> void:
 		"statistics": statistics
 	}
 	
-	print(data)
 	var file := File.new()
 	var err = file.open(SAVE_FILEPATH, File.WRITE)
 	if err:
@@ -135,7 +132,7 @@ func _on_StatisticsButton_pressed() -> void:
 		i.queue_free()
 	
 	for i in data.keys():
-		var chart_bar := ChartBar.instance()
+		var chart_bar := preload("res://addons/godot_timer/prefabs/ChartBar.tscn").instance()
 		var _time_day := format_time(data[i].time, true)
 		chart_bar.get_node("Date").text = str(i, "/", _date.month, "/", str(_date.year).substr(2), "\n", _time_day)
 		var _value = (data[i].time / _maximum) * 184.0
@@ -144,9 +141,11 @@ func _on_StatisticsButton_pressed() -> void:
 		$Statistics/Scroll/Container.add_child(chart_bar)
 
 func _on_SettingsButton_pressed() -> void:
-	pass # Replace with function body.
+	$Settings.popup_centered()
 
 func _tick_timer_timeout() -> void:
+	if current_session_time == 0:
+		load_data()
 	if out_of_focus && !paused:
 		c_delay -= 1
 		if c_delay <= 0:
@@ -159,7 +158,7 @@ func _tick_timer_timeout() -> void:
 		$Container/TotalTime/TimerButton.text = format_time(current_session_time)
 
 		var _date = Time.get_date_dict_from_system()
-		if !statistics.get(_date.year) || !statistics[_date.year].get(_date.month) || !statistics[_date.year][_date.month].get(_date.day):
+		if !statistics.get(_date.year) || !statistics.get(_date.year).get(_date.month) || !statistics.get(_date.year).get(_date.month).get(_date.day):
 			statistics[_date.year] = {}
 			statistics[_date.year][_date.month] = {}
 			statistics[_date.year][_date.month][_date.day] = {
